@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Builder - Adaptive Intelligence System</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+
+  <!-- Interact.js for freeform drag & resize -->
+  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+
+  <!-- Existing scripts (unchanged) -->
+  <script>
+    // On page load, retrieve recommendation and summary from localStorage
+    window.onload = function() {
+      let recommendation = localStorage.getItem("selectedRecommendation") || "";
+      let summary = localStorage.getItem("selectedSummary") || "";
+      document.getElementById("recommendationDisplay").innerText = recommendation;
+      document.getElementById("summaryDisplay").innerText = summary;
+    };
+
+    function removeBlock(index) {
+      const block = document.getElementById("block_" + index);
+      if (block) {
+        block.parentNode.removeChild(block);
+      }
+    }
+
+    function addBlock() {
+      const container = document.getElementById("blocksContainer");
+      const blockIndex = container.children.length;
+      const blockHtml = `
+        <div class="visualization-block" id="block_${blockIndex}">
+          <div class="block-header">
+            <h4>Visualization Block ${blockIndex + 1}</h4>
+            <button class="remove-block" onclick="removeBlock(${blockIndex})">&times;</button>
+          </div>
+          <label>Block Type: </label>
+          <select class="blockType">
+            <option value="auto">Automatic</option>
+            <option value="user">User-Supplied</option>
+          </select>
+          <br>
+          <label>Or Upload CSV File: </label>
+          <input type="file" class="csvFileUpload" accept=".csv" onchange="handleFileUpload(event, this)">
+          <br>
+          <label>Chart Type: </label>
+          <select class="chartType">
+            <option value="bar">Bar Chart</option>
+            <option value="line">Line Chart</option>
+            <option value="scatter">Scatter Plot</option>
+            <option value="wordcloud">Word Cloud</option>
+          </select>
+          <br>
+          <label>Upload Image: </label>
+          <input type="file" class="imageUpload" accept="image/*" onchange="handleImageUpload(event, this)">
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', blockHtml);
+    }
+
+    function handleFileUpload(event, inputElement) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        inputElement.dataset.csvContent = e.target.result;
+      };
+      reader.readAsText(file);
+    }
+
+    function handleImageUpload(event, inputElement) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        inputElement.dataset.imageContent = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function previewReport() {
+      let recommendation = localStorage.getItem("selectedRecommendation") || "";
+      let summary = localStorage.getItem("selectedSummary") || "";
+      let blocks = [];
+      const container = document.getElementById("blocksContainer");
+      const blockElements = container.getElementsByClassName("visualization-block");
+      for (let block of blockElements) {
+        let blockType = block.querySelector(".blockType").value;
+        let csvUploadElement = block.querySelector(".csvFileUpload");
+        let csvContent = csvUploadElement ? csvUploadElement.dataset.csvContent || "" : "";
+        let chartType = block.querySelector(".chartType").value;
+        let imageUploadElement = block.querySelector(".imageUpload");
+        let imageContent = imageUploadElement ? imageUploadElement.dataset.imageContent || "" : "";
+        blocks.push({
+          block_type: blockType,
+          csv_content: csvContent,
+          chart_type: chartType,
+          image_content: imageContent
+        });
+      }
+      
+      let reportConfig = {
+        recommendation: recommendation,
+        summary: summary,
+        blocks: blocks
+      };
+      
+      fetch("/report-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reportConfig)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.html_report) {
+          document.getElementById("reportContent").innerHTML = data.html_report;
+        } else {
+          document.getElementById("reportContent").innerHTML = "<p>Error generating preview.</p>";
+        }
+      })
+      .catch(error => {
+        console.error("Error fetching report preview:", error);
+        document.getElementById("reportContent").innerHTML = "<p>Error generating preview.</p>";
+      });
+    }
+
+    function exportReport(format) {
+      const editedHtml = document.getElementById("reportContent").innerHTML;
+      const payload = {
+        format: format,
+        edited_html: editedHtml
+      };
+      fetch("/report-export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      .then(response => {
+        if (response.ok) {
+          return response.blob();
+        } else {
+          throw new Error("Export failed");
+        }
+      })
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = format === "pdf" ? "report.pdf" : "report.csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      })
+      .catch(error => {
+        console.error("Error exporting report:", error);
+        alert("Error exporting report.");
+      });
+    }
+  </script>
+
+  <!-- Free-floating drag/resize logic for report builder -->
+  <script>
+    const STORAGE_KEY_REPORT = 'freeformPositions_reportBuilder';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      interact('.draggable-block').draggable({
+        listeners: {
+          move (event) {
+            let target = event.target;
+            let x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+            let y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+            target.style.transform = `translate(${x}px, ${y}px)`;
+            target.setAttribute('data-x', x);
+            target.setAttribute('data-y', y);
+          },
+          end (event) {
+            savePositions();
+          }
+        }
+      }).resizable({
+        edges: { left: true, right: true, bottom: true, top: true },
+        listeners: {
+          move (event) {
+            let target = event.target;
+            let x = parseFloat(target.getAttribute('data-x')) || 0;
+            let y = parseFloat(target.getAttribute('data-y')) || 0;
+            target.style.width  = `${event.rect.width}px`;
+            target.style.height = `${event.rect.height}px`;
+            x += event.deltaRect.left;
+            y += event.deltaRect.top;
+            target.style.transform = `translate(${x}px, ${y}px)`;
+            target.setAttribute('data-x', x);
+            target.setAttribute('data-y', y);
+          },
+          end (event) {
+            savePositions();
+          }
+        },
+        modifiers: [
+          interact.modifiers.restrictEdges({
+            outer: 'parent'
+          })
+        ]
+      });
+      loadPositions();
+    });
+
+    function savePositions() {
+      let data = {};
+      document.querySelectorAll('.draggable-block').forEach(el => {
+        let id = el.id;
+        let x = parseFloat(el.getAttribute('data-x')) || 0;
+        let y = parseFloat(el.getAttribute('data-y')) || 0;
+        let w = el.offsetWidth;
+        let h = el.offsetHeight;
+        data[id] = { x, y, w, h };
+      });
+      localStorage.setItem(STORAGE_KEY_REPORT, JSON.stringify(data));
+    }
+
+    function loadPositions() {
+      let data = JSON.parse(localStorage.getItem(STORAGE_KEY_REPORT) || '{}');
+      Object.keys(data).forEach(id => {
+        let block = document.getElementById(id);
+        if (block) {
+          let { x, y, w, h } = data[id];
+          block.style.width = w + 'px';
+          block.style.height = h + 'px';
+          block.style.transform = `translate(${x}px, ${y}px)`;
+          block.setAttribute('data-x', x);
+          block.setAttribute('data-y', y);
+        }
+      });
+    }
+  </script>
+
+  <!-- Minimal inline CSS for large workspace + absolute free-floating blocks -->
+  <style>
+    #workspace {
+      position: relative;
+      width: 2000px; 
+      height: 1200px;
+      overflow: auto;
+      border: 1px solid #aaa;
+    }
+    .draggable-block {
+      position: absolute;
+      border: 1px solid #ccc;
+      background: #fff;
+      padding: 10px;
+      min-width: 300px;
+      min-height: 150px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Report Builder</h1>
+
+  <!-- A large workspace that scrolls if screen is small -->
+  <div id="workspace">
+    <!-- 1) The 'Report Header' section -->
+    <div id="reportHeaderBlock" class="draggable-block" data-x="0" data-y="0">
+      <div class="section">
+        <h2>Report Header</h2>
+        <p><strong>Selected Recommendation:</strong> <span id="recommendationDisplay"></span></p>
+        <p><strong>Summary:</strong> <span id="summaryDisplay"></span></p>
+      </div>
+    </div>
+
+    <!-- 2) Visualization Blocks container -->
+    <div id="visualizationBlock" class="draggable-block" data-x="0" data-y="0">
+      <div class="section">
+        <h2>Visualization Blocks</h2>
+        <div id="blocksContainer">
+          <!-- Default Block -->
+          <div class="visualization-block" id="block_0">
+            <div class="block-header">
+              <h4>Visualization Block 1</h4>
+              <button class="remove-block" onclick="removeBlock(0)">&times;</button>
+            </div>
+            <label>Block Type: </label>
+            <select class="blockType">
+              <option value="auto">Automatic</option>
+              <option value="user">User-Supplied</option>
+            </select>
+            <br>
+            <label>Or Upload CSV File: </label>
+            <input type="file" class="csvFileUpload" accept=".csv" onchange="handleFileUpload(event, this)">
+            <br>
+            <label>Chart Type: </label>
+            <select class="chartType">
+              <option value="bar">Bar Chart</option>
+              <option value="line">Line Chart</option>
+              <option value="scatter">Scatter Plot</option>
+              <option value="wordcloud">Word Cloud</option>
+            </select>
+            <br>
+            <label>Upload Image: </label>
+            <input type="file" class="imageUpload" accept="image/*" onchange="handleImageUpload(event, this)">
+          </div>
+        </div>
+        <button onclick="addBlock()">Add Another Block</button>
+      </div>
+    </div>
+
+    <!-- 3) Preview & Editable Content Section -->
+    <div id="previewBlock" class="draggable-block" data-x="0" data-y="0">
+      <div class="section">
+        <button onclick="previewReport()">Preview Report</button>
+      </div>
+      <div class="section" id="reportContent" contenteditable="true">
+        <p>Report preview will appear here after you click "Preview Report". You can edit this content before exporting.</p>
+      </div>
+      <div class="section">
+        <button onclick="exportReport('pdf')">Export as PDF</button>
+        <button onclick="exportReport('csv')">Export as CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Existing dragDrop.js reference (unchanged) -->
+  <script src="{{ url_for('static', filename='dragDrop.js') }}"></script>
+</body>
+</html>

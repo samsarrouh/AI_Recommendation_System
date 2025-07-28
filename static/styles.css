@@ -1,0 +1,516 @@
+/* Import a clean sans-serif font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
+
+/* Define CSS Variables for a light theme using your palette */
+:root {
+  --primary-color: #D0ADAB;
+  /* dusty rose */
+  --secondary-color: #EDD1D1;
+  /* soft light pink */
+  --accent-color: #C4B0AB;
+  /* muted rose */
+  --bg-color: #ffffff;
+  /* white background */
+  --card-bg: #ffffff;
+  /* white cards */
+  --text-color: #1b1a1a;
+  /* dark text */
+  --border-color: #EDD1D1;
+  /* for subtle borders */
+  --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Global Reset and Body Styling */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Lato', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  padding: 20px;
+}
+
+/* Header and Footer */
+header,
+footer {
+  background: var(--card-bg);
+  padding: 20px 30px;
+  text-align: center;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+
+header h1 {
+  font-size: 2.5em;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+footer p {
+  font-size: 0.9em;
+  color: var(--text-color);
+}
+
+/* Main Container */
+main {
+  max-width: 900px;
+  margin: 20px auto;
+}
+
+/* Section Styling */
+section {
+  background: var(--card-bg);
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+section:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+section h2 {
+  font-size: 1.8em;
+  margin-bottom: 10px;
+  color: var(--primary-color);
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 5px;
+}
+
+/* Recommendation Section */
+.recommendation-section input[type="text"] {
+  width: calc(100% - 20px);
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+.recommendation-section button {
+  background-color: var(--primary-color);
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  color: var(--text-color);
+}
+
+.recommendation-section button:hover {
+  transform: scale(1.02);
+}
+
+.recommendation-button {
+  background-color: var(--primary-color);
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  color: var(--bg-color);
+  cursor: pointer;
+  margin: 5px 0;
+  transition: transform 0.2s;
+}
+
+.recommendation-button:hover {
+  transform: scale(1.02);
+}
+
+/* Summary Section */
+.summary-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.summary-section #summary {
+  margin-bottom: 10px;
+  width: 100%;
+  background: var(--bg-color);
+  padding: 15px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+/* Build Report Button */
+.build-report-button {
+  align-self: center;
+  background-color: var(--primary-color);
+  color: var(--bg-color);
+  font-weight: 700;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  margin-top: 10px;
+}
+
+.build-report-button:hover {
+  transform: scale(1.02);
+}
+
+/* Chat Section */
+.chat-section {
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg);
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+.chat-output {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px;
+  height: 250px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+/* Chat Bubbles */
+.chat-user,
+.chat-response {
+  max-width: 80%;
+  padding: 10px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  word-wrap: break-word;
+}
+
+.chat-user {
+  background-color: var(--primary-color);
+  align-self: flex-end;
+  color: var(--bg-color);
+}
+
+.chat-response {
+  background-color: var(--border-color);
+  align-self: flex-start;
+  color: var(--text-color);
+}
+
+/* Chat Input Container */
+.chat-input-container {
+  display: flex;
+  gap: 10px;
+}
+
+.chat-input-container input[type="text"] {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+.chat-input-container button {
+  background-color: var(--primary-color);
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  color: var(--bg-color);
+}
+
+.chat-input-container button:hover {
+  transform: scale(1.02);
+}
+
+/* Ingestion Section */
+.ingestion-section input[type="text"],
+.ingestion-section input[type="number"],
+.ingestion-section select,
+.ingestion-section textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  color: var(--text-color);
+  margin-bottom: 10px;
+}
+
+.ingestion-section button {
+  background-color: var(--primary-color);
+  padding: 10px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  color: var(--bg-color);
+}
+
+.ingestion-section button:hover {
+  transform: scale(1.02);
+}
+
+/* Custom File Upload */
+.custom-file-upload {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-upload-label {
+  background: #f0f0f0;
+  color: #333;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background 0.2s;
+}
+
+.file-upload-label:hover {
+  background: #e0e0e0;
+}
+
+.file-upload-label input {
+  display: none;
+}
+
+.upload-button {
+  background-color: var(--primary-color);
+  color: var(--bg-color);
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.upload-button:hover {
+  transform: scale(1.02);
+}
+
+/* Visualization Blocks */
+.visualization-block {
+  background: var(--bg-end);
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.visualization-block:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Block Header Styling */
+.block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+}
+
+.block-header h4 {
+  margin: 0;
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+.remove-block {
+  background: none;
+  border: none;
+  color: red;
+  font-size: 1.5em;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.remove-block:hover {
+  transform: scale(1.2);
+}
+
+/* File Upload Section in Visualization Blocks */
+.custom-file-upload {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.file-upload-label {
+  background: #f0f0f0;
+  color: #333;
+  padding: 10px 15px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.95em;
+  transition: background 0.2s;
+}
+
+.file-upload-label input {
+  display: none;
+}
+
+.file-upload-text {
+  font-size: 0.9em;
+}
+
+/* Form Elements in Visualization Blocks */
+.visualization-block label {
+  font-weight: bold;
+  color: #333;
+  display: block;
+  margin-top: 10px;
+}
+
+.visualization-block select,
+.visualization-block textarea {
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  background: #f0f0f0;
+  color: #333;
+  border: 1px solid #aaa;
+  transition: none;
+}
+
+.visualization-block textarea {
+  resize: none;
+  height: 80px;
+}
+
+.visualization-block select:hover,
+.visualization-block textarea:hover {
+  box-shadow: 0 0 10px rgba(160, 196, 255, 0.5);
+}
+
+/* Buttons (Uniform across the app) */
+button {
+  background-color: var(--primary-color);
+  color: var(--bg-color);
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: transform 0.2s;
+}
+
+button:hover {
+  transform: scale(1.02);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* Section Titles */
+.section h2 {
+  color: var(--primary-color);
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+/* Report Preview Section */
+#reportContent {
+  background: var(--bg-color);
+  color: var(--text-color);
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  min-height: 150px;
+  margin-bottom: 15px;
+  overflow-y: auto;
+  text-align: justify;
+}
+
+/* Movable Items */
+.movable {
+  cursor: move;
+  border: 1px dashed var(--secondary-color);
+  padding: 10px;
+  margin: 10px 0;
+  background: var(--card-bg);
+  border-radius: 6px;
+  transition: none;
+}
+
+.movable:hover {
+  box-shadow: 0 0 10px var(--secondary-color);
+}
+
+/* Ensure Section Text is Justified */
+section,
+.section {
+  text-align: justify;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+label,
+input,
+button,
+span,
+a,
+textarea {
+  color: #1b1a1a !important;
+}
+
+/* ----------------------------
+   FREE-FLOATING WORKSPACE
+   ADDED FOR ABSOLUTE DRAG & RESIZE
+   ---------------------------- */
+
+/* The large scrollable workspace container */
+#workspace {
+  position: relative;
+  width: 2000px;
+  /* can be adjusted as desired */
+  height: 1200px;
+  overflow: auto;
+  border: 1px solid #aaa;
+  /* optional for visual boundary */
+  margin: 0 auto;
+  /* center it horizontally in some pages */
+}
+
+/* Each block is absolutely positioned so it can be dragged anywhere inside #workspace */
+.draggable-block {
+  position: absolute;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  min-width: 250px;
+  min-height: 150px;
+  padding: 10px;
+  /* You can keep the box-shadow or styling from your existing sections if needed */
+  box-shadow: var(--shadow);
+  transition: none;
+  /* By default, it has no top/left; Interact.js will set transform translate */
+}
+
+.draggable-block:focus-within {
+  outline: 2px dashed var(--accent-color);
+}

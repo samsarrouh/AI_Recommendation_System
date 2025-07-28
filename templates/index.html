@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Adaptive Intelligence & Recommendation System (AIRS)</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+
+    <!-- Interact.js for freeform drag & resize -->
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+
+    <!-- Existing script code (UNCHANGED) -->
+    <script>
+      // --------------------------
+      // RECOMMENDATION & REPORT FUNCTIONS
+      // --------------------------
+      function getRecommendations() {
+        let query = document.getElementById("query").value;
+        let threshold = parseFloat(document.getElementById("thresholdSlider").value);
+
+        fetch("/recommend", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: query, threshold: threshold })
+        })
+          .then(response => response.json())
+          .then(data => {
+            let resultsDiv = document.getElementById("results");
+            resultsDiv.innerHTML = "<h3>Recommended Products:</h3>";
+            if (data.recommendations.length > 0) {
+              data.recommendations.forEach(rec => {
+                resultsDiv.innerHTML += `<button class="recommendation-button" onclick="handleRecommendationClick('${rec.product}')">${rec.product} (Score: ${rec.score}%)</button><br>`;
+              });
+            } else {
+              console.log("No recommendations found. Message from backend:", data.message);
+              resultsDiv.innerHTML = `<p>${data.message}</p>`;
+            }
+            if (data.debug) {
+              document.getElementById("debugRecommendations").innerText = "Debug: " + JSON.stringify(data.debug, null, 2);
+            }
+          })
+          .catch(error => console.error("Error fetching recommendations:", error));
+      }
+
+      function updateSliderValue(value) {
+        document.getElementById("thresholdValue").textContent = value;
+      }
+
+      function handleRecommendationClick(product) {
+        fetch("/product-summary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ product: product })
+        })
+          .then(response => response.json())
+          .then(data => {
+            let summaryDiv = document.getElementById("summary");
+            summaryDiv.innerHTML = `<h3>Product Summary for ${product}:</h3><p>${data.summary}</p>`;
+            localStorage.setItem("selectedRecommendation", product);
+            localStorage.setItem("selectedSummary", data.summary);
+          })
+          .catch(error => console.error("Error fetching summary:", error));
+      }
+
+      // --------------------------
+      // CHAT FUNCTIONS
+      // --------------------------
+      function chatWithAI(userMessage) {
+        let query = userMessage || document.getElementById("chatInput").value;
+        fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: query })
+        })
+          .then(response => response.json())
+          .then(data => {
+            let chatOutput = document.getElementById("chatOutput");
+            chatOutput.innerHTML += `<div class="chat-response"><strong>AI:</strong> ${data.response}</div>`;
+            chatOutput.scrollTop = chatOutput.scrollHeight;
+          })
+          .catch(error => console.error("Error fetching chat response:", error));
+      }
+
+      function sendChatMessage() {
+        let chatInput = document.getElementById("chatInput");
+        let chatOutput = document.getElementById("chatOutput");
+        let message = chatInput.value;
+        if (message.trim() === "") return;
+        chatOutput.innerHTML += `<div class="chat-user"><strong>You:</strong> ${message}</div>`;
+
+        let chatThreshold = parseFloat(document.getElementById("chatThresholdSlider").value);
+
+        fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: message,
+            threshold: chatThreshold
+          })
+        })
+          .then(response => response.json())
+          .then(data => {
+            chatOutput.innerHTML += `<div class="chat-response"><strong>AI:</strong> ${data.response}</div>`;
+            if (data.debug) {
+              document.getElementById("debugChat").innerText = "Debug: " + JSON.stringify(data.debug, null, 2);
+            }
+            chatOutput.scrollTop = chatOutput.scrollHeight;
+          })
+          .catch(error => console.error("Error fetching chat response:", error));
+
+        chatInput.value = "";
+      }
+
+      // --------------------------
+      // INGESTION FUNCTIONS
+      // --------------------------
+      function uploadFile() {
+        let config = getChunkSettings();
+        if (!config) return;
+        let { size, overlap, useDynamicChunking } = config;
+        let formData = new FormData();
+        let fileInput = document.getElementById("fileUpload");
+        if (fileInput.files.length === 0) {
+          alert("Please select a file to upload.");
+          return;
+        }
+        formData.append("chunk_size", size);
+        formData.append("chunk_overlap", overlap);
+        formData.append("use_dynamic_chunking", useDynamicChunking);
+        formData.append("file", fileInput.files[0]);
+        fetch("/ingest", {
+          method: "POST",
+          body: formData
+        })
+          .then(response => response.json())
+          .then(data => {
+            let ingestResults = document.getElementById("ingestResults");
+            ingestResults.innerHTML = `<p>${data.success || data.error}</p>`;
+          })
+          .catch(error => console.error("Error uploading file:", error));
+      }
+
+      function ingestURL() {
+        let config = getChunkSettings();
+        if (!config) return;
+        let { size, overlap, useDynamicChunking } = config;
+        let url = document.getElementById("urlInput").value;
+        if (!url) {
+          alert("Please enter a URL.");
+          return;
+        }
+        fetch("/ingest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: url,
+            chunk_size: size,
+            chunk_overlap: overlap,
+            use_dynamic_chunking: useDynamicChunking
+          })
+        })
+          .then(response => response.json())
+          .then(data => {
+            let ingestResults = document.getElementById("ingestResults");
+            ingestResults.innerHTML = `<p>${data.success || data.error}</p>`;
+          })
+          .catch(error => console.error("Error ingesting URL:", error));
+      }
+
+      function getChunkSettings() {
+        let size = parseInt(document.getElementById("chunkSize").value, 10);
+        let overlapPct = parseFloat(document.getElementById("chunkOverlapPct").value);
+        if (size < 200 || size > 1000) {
+          alert("Chunk size must be between 200 and 1000");
+          return null;
+        }
+        let overlap = Math.floor(size * overlapPct);
+        if (overlap >= size) {
+          alert("Overlap must be smaller than chunk size");
+          return null;
+        }
+        let useDynamicChunking = document.getElementById("dynamicChunkingToggle").checked;
+        return { size, overlap, useDynamicChunking };
+      }
+
+      function updateFileName(input) {
+        let fileName = input.files.length > 0 ? input.files[0].name : "Choose a file...";
+        document.getElementById("fileName").innerText = fileName;
+      }
+    </script>
+
+    <!-- Free-floating drag/resize logic with Interact.js -->
+    <script>
+      // We'll store positions in localStorage under 'freeformPositions_index'
+      const STORAGE_KEY_INDEX = 'freeformPositions_index';
+
+      document.addEventListener('DOMContentLoaded', () => {
+        // enable dragging + resizing on any .draggable-block
+        interact('.draggable-block')
+          .draggable({
+            listeners: {
+              move (event) {
+                let target = event.target;
+                let x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+                let y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+                target.style.transform = `translate(${x}px, ${y}px)`;
+                target.setAttribute('data-x', x);
+                target.setAttribute('data-y', y);
+              },
+              end (event) {
+                savePositions();
+              }
+            }
+          })
+          .resizable({
+            edges: { left: true, right: true, bottom: true, top: true },
+            listeners: {
+              move (event) {
+                let target = event.target;
+                let x = parseFloat(target.getAttribute('data-x')) || 0;
+                let y = parseFloat(target.getAttribute('data-y')) || 0;
+
+                target.style.width  = `${event.rect.width}px`;
+                target.style.height = `${event.rect.height}px`;
+
+                x += event.deltaRect.left;
+                y += event.deltaRect.top;
+
+                target.style.transform = `translate(${x}px, ${y}px)`;
+                target.setAttribute('data-x', x);
+                target.setAttribute('data-y', y);
+              },
+              end (event) {
+                savePositions();
+              }
+            },
+            modifiers: [
+              interact.modifiers.restrictEdges({
+                outer: 'parent'
+              })
+            ]
+          });
+
+        loadPositions();
+      });
+
+      function savePositions() {
+        let data = {};
+        document.querySelectorAll('.draggable-block').forEach(el => {
+          let id = el.id;
+          let x = parseFloat(el.getAttribute('data-x')) || 0;
+          let y = parseFloat(el.getAttribute('data-y')) || 0;
+          let w = el.offsetWidth;
+          let h = el.offsetHeight;
+          data[id] = { x, y, w, h };
+        });
+        localStorage.setItem(STORAGE_KEY_INDEX, JSON.stringify(data));
+      }
+
+      function loadPositions() {
+        let data = JSON.parse(localStorage.getItem(STORAGE_KEY_INDEX) || '{}');
+        Object.keys(data).forEach(id => {
+          let block = document.getElementById(id);
+          if (block) {
+            let { x, y, w, h } = data[id];
+            block.style.width = w + 'px';
+            block.style.height = h + 'px';
+            block.style.transform = `translate(${x}px, ${y}px)`;
+            block.setAttribute('data-x', x);
+            block.setAttribute('data-y', y);
+          }
+        });
+      }
+    </script>
+
+    <!-- Minimal inline CSS for the large workspace + absolute free-floating blocks -->
+    <style>
+      #workspace {
+        position: relative;
+        width: 2000px;   /* large area to drag blocks around */
+        height: 1200px;
+        overflow: auto;
+        border: 1px solid #aaa; /* optional, just to see boundary */
+      }
+      .draggable-block {
+        position: absolute;
+        border: 1px solid #ccc;
+        background: #fff;
+        padding: 10px;
+        min-width: 250px;
+        min-height: 150px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>Adaptive Intelligence & Recommendation System (AIRS)</h1>
+      <nav>
+        <button onclick="window.location.href='/db_maintenance'">Database Maintenance</button>
+      </nav>
+    </header>
+
+    <!-- Create a large scrolling workspace -->
+    <main>
+      <div id="workspace">
+        <!-- WRAPPED each section in a .draggable-block so it can be placed anywhere -->
+
+        <div id="recommendationBlock" class="draggable-block" data-x="0" data-y="0">
+          <section class="recommendation-section">
+            <h2>Enter Your Search Query:</h2>
+            <input type="text" id="query" placeholder="Type your query here..." />
+            <div style="margin-top:10px;">
+              <label for="thresholdSlider">Distance Threshold (120 - 290):</label><br/>
+              <input
+                type="range"
+                id="thresholdSlider"
+                min="120"
+                max="290"
+                value="200"
+                oninput="document.getElementById('thresholdValue').textContent = this.value"
+                style="width: 250px;"
+              />
+              <span id="thresholdValue">200</span>
+            </div>
+            <br/>
+            <button onclick="getRecommendations()">Get Recommendations</button>
+            <div id="results"></div>
+            <div id="debugRecommendations" style="margin-top:10px; padding:10px; border:1px solid #ccc;"></div>
+          </section>
+        </div>
+
+        <div id="summaryBlock" class="draggable-block" data-x="0" data-y="0">
+          <section class="summary-section">
+            <h2>Product Summary</h2>
+            <div id="summary"></div>
+            <button class="build-report-button" onclick="window.open('/report', '_blank')">Build Report</button>
+          </section>
+        </div>
+
+        <div id="chatBlock" class="draggable-block" data-x="0" data-y="0">
+          <section class="chat-section">
+            <h2>Chat with AI</h2>
+            <div id="chatOutput" class="chat-output"></div>
+            <div class="chat-input-container">
+              <input type="text" id="chatInput" placeholder="Ask me anything..." />
+              <button onclick="sendChatMessage()">Send</button>
+            </div>
+
+            <div style="margin-top:10px;">
+              <label for="chatThresholdSlider">Chat Distance Threshold (120 - 290):</label><br/>
+              <input
+                type="range"
+                id="chatThresholdSlider"
+                min="120"
+                max="290"
+                value="270"
+                oninput="document.getElementById('chatThresholdValue').textContent = this.value"
+                style="width: 250px;"
+              />
+              <span id="chatThresholdValue">270</span>
+            </div>
+            <div id="debugChat" style="margin-top:10px; padding:10px; border:1px solid #ccc;"></div>
+          </section>
+        </div>
+
+        <div id="ingestionBlock" class="draggable-block" data-x="0" data-y="0">
+          <section class="ingestion-section">
+            <h2>Ingestion Settings</h2>
+            <label for="chunkSize">Chunk Size (200-1000):</label>
+            <input type="number" id="chunkSize" value="500" min="200" max="1000" />
+            <br /><br />
+            <label for="chunkOverlapPct">Chunk Overlap:</label>
+            <select id="chunkOverlapPct">
+              <option value="0.05">5%</option>
+              <option value="0.10" selected>10%</option>
+              <option value="0.15">15%</option>
+              <option value="0.20">20%</option>
+              <option value="0.25">25%</option>
+            </select>
+            <br /><br />
+            <label>
+              <input type="checkbox" id="dynamicChunkingToggle" />
+              Use Dynamic Chunking
+            </label>
+            <br /><br />
+            <h3>Ingest Documents (PDF or CSV):</h3>
+            <div class="custom-file-upload">
+              <label for="fileUpload" class="file-upload-label">
+                <span id="fileName">Choose a file...</span>
+                <input type="file" id="fileUpload" onchange="updateFileName(this)" />
+              </label>
+              <button onclick="uploadFile()" class="upload-button">Upload</button>
+            </div>
+            <br /><br />
+            <h3>Ingest Web Pages:</h3>
+            <input type="text" id="urlInput" placeholder="Enter URL here..." />
+            <button onclick="ingestURL()">Ingest</button>
+            <div id="ingestResults"></div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>&copy; 2025 Adaptive Intelligence System</p>
+    </footer>
+  </body>
+</html>
